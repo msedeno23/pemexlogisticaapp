@@ -12,9 +12,11 @@ const LoginScreen = ({ navigation }) => {
     try {
       await loginUser(email, password);
       Alert.alert('Login Successful');
-      // Navegar a la pantalla principal
+      console.log('Navigating to Home');
+      navigation.navigate('Home');
     } catch (error) {
       Alert.alert('Login Failed', error.message);
+      console.log('Login Error:', error.message);
     }
   };
 
