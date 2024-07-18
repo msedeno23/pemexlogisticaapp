@@ -1,36 +1,42 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
-import Input from '../components/Input';
-import Button from '../components/Button';
-import { registerUser } from '../services/AuthService';
+import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
+import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
 
-const RegisterScreen = ({ navigation }) => {
+const RegisterScreen = () => {
+  const navigation = useNavigation();
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [surname, setSurname] = useState('');
+  const [tad, setTad] = useState('');
+  const [autotanque, setAutotanque] = useState('');
+  const [ficha, setFicha] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [name, setName] = useState('');
-  const [lastNameP, setLastNameP] = useState('');
-  const [lastNameM, setLastNameM] = useState('');
-  const [tad, setTad] = useState('');
-  const [ficha, setFicha] = useState('');
-  const [autotanque, setAutotanque] = useState('');
 
   const handleRegister = async () => {
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      Alert.alert('Error', 'Las contraseñas no coinciden.');
       return;
     }
+
     try {
-      await registerUser(email, password, {
-        name,
-        lastNameP,
-        lastNameM,
+      const userCredential = await auth().createUserWithEmailAndPassword(email, password);
+      const user = userCredential.user;
+
+      await firestore().collection('users').doc(user.uid).set({
+        firstName,
+        lastName,
+        surname,
         tad,
-        ficha,
         autotanque,
+        ficha,
+        email,
       });
-      Alert.alert('Registration Successful');
+
       navigation.navigate('Login');
     } catch (error) {
       Alert.alert('Registration Failed', error.message);
@@ -40,23 +46,60 @@ const RegisterScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Register</Text>
-      <Input placeholder="Nombre(s)" value={name} onChangeText={setName} />
-      <Input placeholder="Apellido Paterno" value={lastNameP} onChangeText={setLastNameP} />
-      <Input placeholder="Apellido Materno" value={lastNameM} onChangeText={setLastNameM} />
+      <TextInput
+        style={styles.input}
+        placeholder="Nombre(s)"
+        value={firstName}
+        onChangeText={setFirstName}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Apellido Paterno"
+        value={lastName}
+        onChangeText={setLastName}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Apellido Materno"
+        value={surname}
+        onChangeText={setSurname}
+      />
       <Picker
         selectedValue={tad}
-        style={styles.picker}
+        style={styles.input}
         onValueChange={(itemValue, itemIndex) => setTad(itemValue)}
       >
-        <Picker.Item label="Seleccione TAD" value="" />
+        <Picker.Item label="Seleccionar TAD" value="" />
         <Picker.Item label="TAD Veracruz" value="TAD Veracruz" />
         <Picker.Item label="TAD Escamela" value="TAD Escamela" />
       </Picker>
-      <Input placeholder="Ficha" value={ficha} onChangeText={setFicha} />
-      <Input placeholder="Autotanque" value={autotanque} onChangeText={setAutotanque} />
-      <Input placeholder="Correo" value={email} onChangeText={setEmail} />
-      <Input placeholder="Contraseña" value={password} onChangeText={setPassword} secureTextEntry />
-      <Input
+      <TextInput
+        style={styles.input}
+        placeholder="Número del Autotanque"
+        value={autotanque}
+        onChangeText={setAutotanque}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Ficha del OAT"
+        value={ficha}
+        onChangeText={setFicha}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Correo"
+        value={email}
+        onChangeText={setEmail}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Contraseña"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+      />
+      <TextInput
+        style={styles.input}
         placeholder="Confirmar Contraseña"
         value={confirmPassword}
         onChangeText={setConfirmPassword}
@@ -71,17 +114,19 @@ const RegisterScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
     padding: 16,
+    justifyContent: 'center',
   },
   title: {
     fontSize: 24,
     marginBottom: 16,
     textAlign: 'center',
   },
-  picker: {
-    height: 50,
-    width: '100%',
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    padding: 10,
+    borderRadius: 5,
     marginBottom: 10,
   },
 });
