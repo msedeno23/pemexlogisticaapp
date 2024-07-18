@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Button, Alert, ScrollView, TouchableOpacity } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import Geolocation from '@react-native-community/geolocation';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import Geolocation from '@react-native-community/geolocation';
 import firestore from '@react-native-firebase/firestore';
 
 const GOOGLE_MAPS_APIKEY = 'AIzaSyAvXIU0Bf7rtYVDPqB8C-g4frItTBJ9Fqk';
@@ -12,61 +12,66 @@ const TripDetailsScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { destination, autotanqueNumber, oatName, tad } = route.params;
-  const [startTime, setStartTime] = useState(null);
-  const [tracking, setTracking] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(null);
-  const [distanceTraveled, setDistanceTraveled] = useState(0);
-  const [timeElapsed, setTimeElapsed] = useState('00:00:00');
+  const [tracking, setTracking] = useState(false);
+  const [startTime, setStartTime] = useState(null);
   const [routeCoordinates, setRouteCoordinates] = useState([]);
-  const [timer, setTimer] = useState(null);
+  const [timeElapsed, setTimeElapsed] = useState('00:00:00');
+  const [distanceTraveled, setDistanceTraveled] = useState(0);
 
   useEffect(() => {
-    let watchId;
+    Geolocation.getCurrentPosition(
+      position => {
+        setCurrentLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+      },
+      error => {
+        Alert.alert('Error', error.message);
+      },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
+    );
+  }, []);
+
+  useEffect(() => {
+    let timer;
     if (tracking) {
       const start = new Date();
       setStartTime(start);
 
-      watchId = Geolocation.watchPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          const newLocation = { latitude, longitude };
-          setCurrentLocation(newLocation);
+      timer = setInterval(() => {
+        const now = new Date();
+        setTimeElapsed(formatTime(now - start));
 
-          if (currentLocation) {
-            const distance = calculateDistance(currentLocation, newLocation);
-            setDistanceTraveled(prevDistance => prevDistance + distance);
-          }
+        Geolocation.getCurrentPosition(
+          position => {
+            const newLocation = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            };
 
-          const elapsed = new Date() - start;
-          setTimeElapsed(formatTime(elapsed));
-
-          setRouteCoordinates(prevCoordinates => [...prevCoordinates, newLocation]);
-        },
-        (error) => Alert.alert('Error', error.message),
-        { enableHighAccuracy: true, distanceFilter: 0 }
-      );
-
-      // Update timer every second
-      const intervalId = setInterval(() => {
-        const elapsed = new Date() - start;
-        setTimeElapsed(formatTime(elapsed));
+            setRouteCoordinates(prevCoords => [...prevCoords, newLocation]);
+            setDistanceTraveled(prevDistance => prevDistance + calculateDistance(currentLocation, newLocation));
+            setCurrentLocation(newLocation);
+          },
+          error => {
+            Alert.alert('Error', error.message);
+          },
+          { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
+        );
       }, 1000);
-
-      setTimer(intervalId);
     }
 
     return () => {
-      if (watchId) {
-        Geolocation.clearWatch(watchId);
-      }
       if (timer) {
         clearInterval(timer);
       }
     };
-  }, [tracking, currentLocation]);
+  }, [tracking]);
 
   const calculateDistance = (start, end) => {
-    if (!start) return 0;
+    if (!start || !end) return 0;
     const radlat1 = Math.PI * start.latitude / 180;
     const radlat2 = Math.PI * end.latitude / 180;
     const theta = start.longitude - end.longitude;
@@ -96,20 +101,46 @@ const TripDetailsScreen = () => {
     const endTime = new Date();
     const tripDuration = (endTime - startTime) / 1000; // in seconds
 
-    await firestore().collection('trips').add({
-      autotanqueNumber,
-      oatName,
-      tad,
-      startLocation: currentLocation,
-      endLocation: destination,
-      startTime: startTime.toISOString(),
-      endTime: endTime.toISOString(),
-      tripDuration,
-      distanceTraveled,
-    });
+    console.log('autotanqueNumber:', autotanqueNumber);
+    console.log('oatName:', oatName);
+    console.log('tad:', tad);
+    console.log('currentLocation:', currentLocation);
+    console.log('destination:', destination);
+    console.log('startTime:', startTime);
+    console.log('endTime:', endTime);
+    console.log('tripDuration:', tripDuration);
+    console.log('distanceTraveled:', distanceTraveled);
 
-    Alert.alert('Viaje Finalizado', `Duración: ${formatTime(tripDuration * 1000)}, Distancia: ${distanceTraveled.toFixed(2)} km`);
-    navigation.navigate('Home');
+    if (
+      autotanqueNumber !== undefined &&
+      oatName !== undefined &&
+      tad !== undefined &&
+      currentLocation !== undefined &&
+      destination !== undefined &&
+      startTime !== undefined &&
+      endTime !== undefined &&
+      tripDuration !== undefined &&
+      distanceTraveled !== undefined
+    ) {
+      await firestore().collection('trips').add({
+        autotanqueNumber,
+        oatName,
+        tad,
+        startLocation: currentLocation,
+        endLocation: destination,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        tripDuration,
+        distanceTraveled,
+      });
+
+      navigation.navigate('TripSummary', {
+        tripDuration,
+        distanceTraveled,
+      });
+    } else {
+      Alert.alert('Error', 'Uno o más campos contienen valores indefinidos.');
+    }
   };
 
   const mapRegion = {
@@ -204,7 +235,7 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 5,
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 20,
   },
   buttonText: {
     color: 'white',
