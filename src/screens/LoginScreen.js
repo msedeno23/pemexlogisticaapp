@@ -17,7 +17,7 @@ const LoginScreen = ({ navigation }) => {
       await loginUser(email, password);
       Alert.alert('Bienvenido');
       console.log('Vamos al inicio');
-      navigation.navigate('Home');
+      navigation.navigate('Main');
     } catch (error) {
       Alert.alert('Error al iniciar sesión', error.message);
       console.log('Error al iniciar sesión:', error.message);
