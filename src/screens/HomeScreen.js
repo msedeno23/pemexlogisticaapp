@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { PermissionsAndroid, Platform, Alert, Button } from 'react-native';
+import { PermissionsAndroid, Platform, Alert } from 'react-native';
 import Geolocation from '@react-native-community/geolocation';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import HomeScreenView from '../components/HomeScreenView';
 import MapViewDirections from 'react-native-maps-directions';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const GOOGLE_MAPS_APIKEY = 'AIzaSyAvXIU0Bf7rtYVDPqB8C-g4frItTBJ9Fqk';
 
@@ -179,22 +178,6 @@ const HomeScreen = ({ navigation }) => {
       ]
     );
   };
-
-  React.useLayoutEffect(() => {
-    navigation.setOptions({
-      headerLeft: () => (
-        <Icon.Button
-          name="menu"
-          size={25}
-          backgroundColor="#000"
-          color="#fff" // Cambia esto al color que desees, por ejemplo, "#000" para negro
-          onPress={() => navigation.openDrawer()}
-        />
-      ),
-      headerTitle: '',
-      headerShown: true,
-    });
-  }, [navigation]);
 
   return (
     <HomeScreenView

@@ -146,7 +146,7 @@ const RegisterScreen = ({ navigation }) => {
                 >
                   <Picker.Item label="Seleccione Capacidad de Autotanque" value="" />
                   <Picker.Item label="20 mil litros" value="20 mil litros" />
-                  <Picker.Item label="30 mil litros" value="30 mil litros" />
+                  <Picker.Item label="30 mil litros" value="31.5 mil litros" />
                 </Picker>
               </View>
               <View style={styles.inputContainer}>

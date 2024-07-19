@@ -1,51 +1,94 @@
+// App.js
+
 import 'react-native-gesture-handler';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { createDrawerNavigator } from '@react-navigation/drawer';
-import DrawerContent from './src/components/DrawerContent';
-import auth from '@react-native-firebase/auth';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import Icon from 'react-native-vector-icons/FontAwesome';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import HomeScreen from './src/screens/HomeScreen';
-import TripDetailsScreen from './src/screens/TripDetailsScreen';
+import ServicesScreen from './src/screens/ServicesScreen';
+import ActivityScreen from './src/screens/ActivityScreen';
+import AccountScreen from './src/screens/AccountScreen';
 
 const Stack = createStackNavigator();
-const Drawer = createDrawerNavigator();
+const Tab = createBottomTabNavigator();
+
+const HomeStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="Home" component={HomeScreen} />
+  </Stack.Navigator>
+);
+
+const ServicesStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="Services" component={ServicesScreen} />
+  </Stack.Navigator>
+);
+
+const ActivityStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="Activity" component={ActivityScreen} />
+  </Stack.Navigator>
+);
+
+const AccountStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="Account" component={AccountScreen} />
+  </Stack.Navigator>
+);
+
+const TabNavigator = () => (
+  <Tab.Navigator>
+    <Tab.Screen
+      name="Home"
+      component={HomeStack}
+      options={{
+        tabBarIcon: ({ color, size }) => (
+          <Icon name="home" color={color} size={size} />
+        ),
+      }}
+    />
+    <Tab.Screen
+      name="Services"
+      component={ServicesStack}
+      options={{
+        tabBarIcon: ({ color, size }) => (
+          <Icon name="cogs" color={color} size={size} />
+        ),
+      }}
+    />
+    <Tab.Screen
+      name="Activity"
+      component={ActivityStack}
+      options={{
+        tabBarIcon: ({ color, size }) => (
+          <Icon name="list" color={color} size={size} />
+        ),
+      }}
+    />
+    <Tab.Screen
+      name="Account"
+      component={AccountStack}
+      options={{
+        tabBarIcon: ({ color, size }) => (
+          <Icon name="user" color={color} size={size} />
+        ),
+      }}
+    />
+  </Tab.Navigator>
+);
 
 const App = () => {
-  const [initializing, setInitializing] = useState(true);
-  const [user, setUser] = useState(null);
-
-  // Handle user state changes
-  const onAuthStateChanged = (user) => {
-    setUser(user);
-    if (initializing) setInitializing(false);
-  };
-
-  useEffect(() => {
-    const subscriber = auth().onAuthStateChanged(onAuthStateChanged);
-    return subscriber; // unsubscribe on unmount
-  }, []);
-
-  if (initializing) return null;
-
   return (
     <NavigationContainer>
-      {user ? (
-        <Drawer.Navigator
-          drawerContent={(props) => <DrawerContent {...props} />}
-          screenOptions={{ headerShown: false }} // Ocultar el encabezado aquí
-        >
-          <Drawer.Screen name="Home" component={HomeScreen} />
-          <Drawer.Screen name="TripDetails" component={TripDetailsScreen} />
-        </Drawer.Navigator>
-      ) : (
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Login" component={LoginScreen} />
-          <Stack.Screen name="Register" component={RegisterScreen} />
-        </Stack.Navigator>
-      )}
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Register" component={RegisterScreen} />
+        <Stack.Screen name="Main" component={TabNavigator} />
+      </Stack.Navigator>
     </NavigationContainer>
   );
 };
