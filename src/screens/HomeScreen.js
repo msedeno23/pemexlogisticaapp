@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, PermissionsAndroid, Platform, Alert, Button } from 'react-native';
-import MapView, { Marker, Polyline } from 'react-native-maps';
+import { PermissionsAndroid, Platform, Alert, Button } from 'react-native';
 import Geolocation from '@react-native-community/geolocation';
-import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
-import MapViewDirections from 'react-native-maps-directions';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
+import HomeScreenView from '../components/HomeScreenView';
+import MapViewDirections from 'react-native-maps-directions';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const GOOGLE_MAPS_APIKEY = 'AIzaSyAvXIU0Bf7rtYVDPqB8C-g4frItTBJ9Fqk';
 
@@ -17,8 +17,12 @@ const HomeScreen = ({ navigation }) => {
     longitudeDelta: 0.0421,
   });
   const [destination, setDestination] = useState(null);
-  const [route, setRoute] = useState(null);
+  const [route, setRoute] = useState([]);
   const [userInfo, setUserInfo] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [navigationActive, setNavigationActive] = useState(false);
+  const [estimatedTime, setEstimatedTime] = useState('');
+  const [showTripDetails, setShowTripDetails] = useState(false);
 
   useEffect(() => {
     const requestLocationPermission = async () => {
@@ -82,111 +86,133 @@ const HomeScreen = ({ navigation }) => {
       }
     };
 
+    const fetchHistory = async () => {
+      const user = auth().currentUser;
+      if (user) {
+        const historyDocs = await firestore().collection('history').where('userId', '==', user.uid).orderBy('timestamp', 'desc').limit(2).get();
+        const historyData = historyDocs.docs.map(doc => doc.data());
+        setHistory(historyData);
+      }
+    };
+
     requestLocationPermission();
     fetchUserInfo();
+    fetchHistory();
   }, []);
 
-  const handleDestinationSelect = (data, details) => {
-    const { lat, lng } = details.geometry.location;
-    setDestination({
-      latitude: lat,
-      longitude: lng,
-      name: details.name,
-    });
+  const handleSearchSelect = async (data, details) => {
+    const user = auth().currentUser;
+    if (user && details) {
+      const { lat, lng } = details.geometry.location;
+      setDestination({
+        latitude: lat,
+        longitude: lng,
+        description: data.description,
+      });
+      const newHistoryItem = {
+        userId: user.uid,
+        address: data.description,
+        latitude: lat,
+        longitude: lng,
+        timestamp: new Date().toISOString()
+      };
+      await firestore().collection('history').add(newHistoryItem);
+      setHistory(prevHistory => [newHistoryItem, ...prevHistory].slice(0, 2));
+      setShowTripDetails(true);
+    }
   };
 
   const handleRouteReady = (result) => {
     setRoute(result.coordinates);
+    if (result.duration) {
+      setEstimatedTime(`${Math.round(result.duration)} min`);
+    }
   };
 
+  const handleStartTrip = async () => {
+    const user = auth().currentUser;
+    if (user && destination) {
+      await firestore().collection('trips').add({
+        userId: user.uid,
+        startLocation: location,
+        endLocation: destination,
+        startTime: new Date().toISOString(),
+        userInfo: userInfo,
+      });
+      setNavigationActive(true);
+      setShowTripDetails(false);
+    }
+  };
+
+  const handleEndTrip = async () => {
+    Alert.alert(
+      "Finalizar Viaje",
+      "¿Está seguro de que desea finalizar el viaje?",
+      [
+        {
+          text: "No",
+          onPress: () => {},
+          style: "cancel"
+        },
+        {
+          text: "Sí",
+          onPress: async () => {
+            const user = auth().currentUser;
+            if (user && destination) {
+              try {
+                const tripDoc = await firestore().collection('trips').where('userId', '==', user.uid).orderBy('startTime', 'desc').limit(1).get();
+                if (!tripDoc.empty) {
+                  const trip = tripDoc.docs[0];
+                  await firestore().collection('trips').doc(trip.id).update({
+                    endTime: new Date().toISOString(),
+                  });
+                }
+                setNavigationActive(false);
+                setDestination(null);
+                setRoute([]);
+              } catch (error) {
+                Alert.alert('Error', error.message);
+              }
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => (
+        <Icon.Button
+          name="menu"
+          size={25}
+          backgroundColor="#000"
+          color="#fff" // Cambia esto al color que desees, por ejemplo, "#000" para negro
+          onPress={() => navigation.openDrawer()}
+        />
+      ),
+      headerTitle: '',
+      headerShown: true,
+    });
+  }, [navigation]);
+
   return (
-    <View style={styles.container}>
-      <GooglePlacesAutocomplete
-        placeholder="A dónde vamos?"
-        minLength={2}
-        fetchDetails={true}
-        onPress={handleDestinationSelect}
-        query={{
-          key: GOOGLE_MAPS_APIKEY,
-          language: 'es',
-        }}
-        styles={{
-          container: styles.autocompleteContainer,
-          textInput: styles.autocompleteInput,
-          listView: styles.autocompleteListView,
-        }}
-        nearbyPlacesAPI="GooglePlacesSearch"
-        debounce={200}
-      />
-      <MapView
-        style={styles.map}
-        region={location}
-        showsUserLocation={true}
-        followUserLocation={true}
-      >
-        <Marker coordinate={location} />
-        {destination && <Marker coordinate={destination} />}
-        {destination && (
-          <MapViewDirections
-            origin={location}
-            destination={destination}
-            apikey={GOOGLE_MAPS_APIKEY}
-            strokeWidth={3}
-            strokeColor="hotpink"
-            onReady={handleRouteReady}
-          />
-        )}
-        {route && <Polyline coordinates={route} strokeWidth={2} strokeColor="blue" />}
-      </MapView>
-      <View style={styles.bottomContainer}>
-        {destination && userInfo && (
-          <Button
-            title="Seleccionar Viaje"
-            onPress={() => navigation.navigate('TripDetails', {
-              destination,
-              autotanqueNumber: userInfo.autotanqueNumber,
-              oatName: userInfo.name,
-              tad: userInfo.tad
-            })}
-          />
-        )}
-      </View>
-    </View>
+    <HomeScreenView
+      location={location}
+      destination={destination}
+      route={route}
+      userInfo={userInfo}
+      history={history}
+      navigationActive={navigationActive}
+      showTripDetails={showTripDetails}
+      estimatedTime={estimatedTime}
+      onSearchSelect={handleSearchSelect}
+      onRouteReady={handleRouteReady}
+      onStartTrip={handleStartTrip}
+      onEndTrip={handleEndTrip}
+      GOOGLE_MAPS_APIKEY={GOOGLE_MAPS_APIKEY}
+    />
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  map: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  autocompleteContainer: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    right: 10,
-    zIndex: 1,
-  },
-  autocompleteInput: {
-    height: 40,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    paddingLeft: 10,
-  },
-  autocompleteListView: {
-    backgroundColor: 'white',
-    position: 'absolute',
-    top: 60,
-  },
-  bottomContainer: {
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
-  },
-});
 
 export default HomeScreen;

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "87446129143",
+    "project_id": "tadpmxlogistica",
+    "storage_bucket": "tadpmxlogistica.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:87446129143:android:28e64af95d7d86682e86f2",
+        "android_client_info": {
+          "package_name": "com.pemexlogisticaapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD7xemaJ8t_b-ZO3oFSyDgimJUx38GIm7Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
