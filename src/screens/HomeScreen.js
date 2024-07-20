@@ -6,7 +6,7 @@ import firestore from '@react-native-firebase/firestore';
 import HomeScreenView from '../components/HomeScreenView';
 import MapViewDirections from 'react-native-maps-directions';
 
-const GOOGLE_MAPS_APIKEY = 'AIzaSyAvXIU0Bf7rtYVDPqB8C-g4frItTBJ9Fqk';
+const GOOGLE_MAPS_APIKEY = 'AIzaSyDvGt9NgF3kJ4u1VAIFK-uBcJVJooSlMbY';
 
 const HomeScreen = ({ navigation }) => {
   const [location, setLocation] = useState({
