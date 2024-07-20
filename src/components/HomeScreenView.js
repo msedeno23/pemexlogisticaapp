@@ -66,23 +66,6 @@ const HomeScreenView = ({
         )}
         {route.length > 0 && <Polyline coordinates={route} strokeWidth={2} strokeColor="blue" />}
       </MapView>
-      <GooglePlacesAutocomplete
-        placeholder="¿A dónde vamos?"
-        minLength={2}
-        fetchDetails={true}
-        onPress={onSearchSelect}
-        query={{
-          key: GOOGLE_MAPS_APIKEY,
-          language: 'es',
-        }}
-        styles={{
-          container: styles.autocompleteContainer,
-          textInput: styles.autocompleteInput,
-          listView: styles.autocompleteListView,
-        }}
-        nearbyPlacesAPI="GooglePlacesSearch"
-        debounce={200}
-      />
       {!navigationActive && (
         <View style={styles.tripDetails}>
           <Text style={styles.tripText}>Seleccionar un destino para iniciar el viaje</Text>
@@ -96,7 +79,7 @@ const HomeScreenView = ({
                 <Text style={styles.detailsText}>Nombre del OAT: {userInfo.name}</Text>
                 <Text style={styles.detailsText}>TAD: {userInfo.tad}</Text>
               </View>
-              <TouchableOpacity style={styles.button} onPress={onStartTrip}>
+              <TouchableOpacity style={[styles.button, styles.startTripButton]} onPress={onStartTrip}>
                 <Text style={styles.buttonText}>Iniciar Viaje</Text>
               </TouchableOpacity>
             </>
@@ -104,7 +87,7 @@ const HomeScreenView = ({
         </View>
       )}
       {navigationActive && (
-        <TouchableOpacity style={styles.button} onPress={onEndTrip}>
+        <TouchableOpacity style={[styles.button, styles.endTripButton]} onPress={onEndTrip}>
           <Text style={styles.buttonText}>Finalizar Viaje</Text>
         </TouchableOpacity>
       )}
@@ -159,18 +142,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   button: {
-    backgroundColor: '#000000',
     padding: 10,
     borderRadius: 5,
     alignItems: 'center',
+  },
+  startTripButton: {
+    backgroundColor: '#000000',
+  },
+  endTripButton: {
+    backgroundColor: '#d9534f',
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
   },
   buttonText: {
     color: 'white',
     fontSize: 18,
   },
   markerIcon: {
-    width: 30, // Ajusta este tamaño según sea necesario
-    height: 40, // Ajusta este tamaño según sea necesario
+    width: 30,
+    height: 40,
     resizeMode: 'contain',
   },
 });
